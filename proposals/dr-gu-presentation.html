@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>닥터 구 — 당신의 구독 주치의</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<style>
+  :root{
+    --indigo:#4F46E5;
+    --indigo-deep:#3730A3;
+    --mint:#2DD4BF;
+    --coral:#FB7185;
+    --bg:#FAFAFA;
+    --surface:#FFFFFF;
+    --tint:#EEF0FD;
+    --ink:#1E293B;
+    --ink-soft:#64748B;
+    --line:#E2E4F0;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    overflow-x:hidden;
+  }
+  .num{font-family:'Montserrat', sans-serif;}
+
+  /* ---- 배경 신호선(ECG/새는 라인) 시그니처 ---- */
+  .pulse-line{
+    position:absolute; inset:0; width:100%; height:100%;
+    pointer-events:none; z-index:0;
+  }
+
+  /* ---- 상단 진행 네비게이션 ---- */
+  .nav-dots{
+    position:fixed; right:28px; top:50%; transform:translateY(-50%);
+    display:flex; flex-direction:column; gap:14px; z-index:50;
+  }
+  .nav-dots a{
+    width:8px; height:8px; border-radius:50%;
+    background:#C7CBE8; display:block; transition:.25s;
+    text-decoration:none;
+  }
+  .nav-dots a.active{ background:var(--indigo); width:10px; height:26px; border-radius:6px; }
+  @media(max-width:720px){ .nav-dots{display:none;} }
+
+  section{
+    min-height:100vh; width:100%;
+    position:relative;
+    display:flex; align-items:center; justify-content:center;
+    padding:80px 8vw;
+    overflow:hidden;
+  }
+
+  .frame{ position:relative; z-index:2; width:100%; max-width:1040px; margin:0 auto; }
+
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:13px; font-weight:700; letter-spacing:.06em;
+    color:var(--indigo); background:var(--tint);
+    padding:6px 14px; border-radius:100px; margin-bottom:28px;
+  }
+  .eyebrow .dot{width:6px; height:6px; border-radius:50%; background:var(--mint);}
+
+  h1{
+    font-size:clamp(30px, 4.4vw, 52px);
+    font-weight:800; line-height:1.32; letter-spacing:-0.02em;
+    color:var(--ink);
+  }
+  h1 .mark{ color:var(--coral); }
+  h1 .mark-indigo{ color:var(--indigo); }
+
+  .sub{
+    margin-top:22px; font-size:clamp(15px,1.6vw,19px);
+    color:var(--ink-soft); font-weight:500; line-height:1.65;
+    max-width:640px;
+  }
+
+  /* ===== SLIDE 1 : COVER ===== */
+  #s1{ background:
+      radial-gradient(circle at 82% 18%, rgba(79,70,229,.07), transparent 45%),
+      radial-gradient(circle at 12% 85%, rgba(45,212,191,.08), transparent 45%),
+      var(--bg);
+  }
+  .cover-tag{
+    position:absolute; font-size:12px; font-weight:700; color:var(--ink-soft);
+    background:var(--surface); border:1px solid var(--line); border-radius:100px;
+    padding:5px 12px; opacity:.55; letter-spacing:.02em;
+  }
+  .card-visual{
+    margin-top:56px; position:relative; width:min(420px, 90%);
+  }
+  .credit-card{
+    width:100%; aspect-ratio:1.586/1; border-radius:18px;
+    background:linear-gradient(135deg, var(--indigo) 0%, var(--indigo-deep) 100%);
+    box-shadow:0 24px 48px -18px rgba(79,70,229,.45);
+    position:relative; overflow:hidden;
+    display:flex; flex-direction:column; justify-content:space-between;
+    padding:26px 28px;
+  }
+  .credit-card::after{
+    content:''; position:absolute; right:-40px; top:-40px; width:180px; height:180px;
+    border-radius:50%; background:rgba(255,255,255,.08);
+  }
+  .credit-card .chip{ width:38px; height:28px; border-radius:6px; background:rgba(255,255,255,.85); }
+  .credit-card .cnum{ color:#fff; font-size:16px; letter-spacing:.18em; font-weight:600; opacity:.9; }
+  .credit-card .clabel{ color:rgba(255,255,255,.7); font-size:11px; letter-spacing:.08em; font-weight:600; }
+  .leak-dots{ position:absolute; left:20%; bottom:-14px; width:60%; height:70px; }
+  .leak-dots span{
+    position:absolute; bottom:0; width:7px; height:7px; border-radius:50%;
+    background:var(--coral); opacity:0; animation:drop 2.6s infinite;
+  }
+  .leak-dots span:nth-child(1){ left:10%; animation-delay:0s; }
+  .leak-dots span:nth-child(2){ left:38%; animation-delay:.7s; }
+  .leak-dots span:nth-child(3){ left:64%; animation-delay:1.4s; }
+  .leak-dots span:nth-child(4){ left:86%; animation-delay:2.1s; }
+  @keyframes drop{
+    0%{ opacity:0; transform:translateY(-6px) scale(.6); }
+    15%{ opacity:1; transform:translateY(4px) scale(1); }
+    70%{ opacity:.4; transform:translateY(56px) scale(.7); }
+    100%{ opacity:0; transform:translateY(66px) scale(.5); }
+  }
+  .stat-note{
+    margin-top:40px; display:inline-flex; align-items:center; gap:10px;
+    font-size:13px; color:var(--ink-soft); border-left:2px solid var(--coral);
+    padding-left:12px; font-weight:500;
+  }
+
+  /* ===== SLIDE 2 ===== */
+  #s2{ background:var(--bg); }
+  .steps-row{
+    margin-top:52px; display:flex; gap:18px; flex-wrap:wrap;
+  }
+  .step-chip{
+    flex:1; min-width:180px; background:var(--surface); border:1px solid var(--line);
+    border-radius:16px; padding:26px 22px; position:relative;
+    transition:.2s;
+  }
+  .step-chip .n{
+    font-size:13px; font-weight:800; color:var(--indigo);
+    background:var(--tint); width:26px; height:26px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; margin-bottom:16px;
+  }
+  .step-chip h3{ font-size:17px; font-weight:700; margin-bottom:8px; }
+  .step-chip p{ font-size:13.5px; color:var(--ink-soft); line-height:1.6; }
+  .step-arrow{ display:flex; align-items:center; color:#C7CBE8; font-size:20px; }
+  @media(max-width:720px){ .step-arrow{ transform:rotate(90deg); justify-content:center; } }
+
+  .callout{
+    margin-top:44px; background:var(--ink); border-radius:18px; padding:30px 34px;
+    position:relative; overflow:hidden;
+  }
+  .callout::before{
+    content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--mint);
+  }
+  .callout p{ color:#E2E8F0; font-size:15.5px; line-height:1.75; font-weight:500; }
+  .callout p b{ color:#fff; font-weight:700; }
+  .callout .quiet{ color:#94A3B8; }
+
+  /* ===== SLIDE 3 ===== */
+  #s3{ background:linear-gradient(180deg, #FAFAFA 0%, #F3F1FF 100%); }
+  .process{ margin-top:52px; display:flex; align-items:stretch; gap:0; }
+  .p-card{
+    flex:1; background:var(--surface); border-radius:18px; padding:30px 24px;
+    border:1px solid var(--line); position:relative;
+    display:flex; flex-direction:column; gap:14px;
+  }
+  .p-card .icon{
+    width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center;
+    font-size:22px;
+  }
+  .p-card:nth-child(1) .icon{ background:#EEF2FF; }
+  .p-card:nth-child(3) .icon{ background:#F0FDFA; }
+  .p-card:nth-child(5) .icon{ background:#FFF1F2; }
+  .p-card h3{ font-size:17px; font-weight:700; }
+  .p-card p{ font-size:13.5px; color:var(--ink-soft); line-height:1.6; }
+  .tech-tag{
+    align-self:flex-start; font-size:11px; font-weight:700; color:var(--indigo);
+    background:var(--tint); padding:5px 11px; border-radius:100px; margin-top:auto;
+  }
+  .p-arrow{ flex:0 0 40px; display:flex; align-items:center; justify-content:center; color:var(--indigo); font-size:20px; }
+  @media(max-width:800px){ .process{ flex-direction:column; } .p-arrow{ transform:rotate(90deg); padding:6px 0; } }
+
+  .bubble-wrap{ margin-top:46px; display:flex; justify-content:flex-start; }
+  .bubble{
+    background:var(--indigo); color:#fff; padding:18px 24px; border-radius:20px 20px 20px 4px;
+    font-size:15.5px; font-weight:600; max-width:420px; box-shadow:0 16px 32px -14px rgba(79,70,229,.5);
+  }
+  .bubble-label{ font-size:12px; color:var(--ink-soft); margin-bottom:10px; font-weight:600; }
+
+  /* ===== SLIDE 4 ===== */
+  #s4{ background:var(--bg); }
+  .compare{
+    margin-top:48px; width:100%; border-radius:18px; overflow:hidden;
+    border:1px solid var(--line); background:var(--surface);
+  }
+  .compare table{ width:100%; border-collapse:collapse; }
+  .compare th, .compare td{ padding:18px 20px; text-align:center; font-size:14.5px; }
+  .compare thead th{
+    background:var(--ink); color:#fff; font-weight:700; font-size:14px;
+  }
+  .compare thead th:first-child{ text-align:left; color:#94A3B8; font-weight:600; }
+  .compare thead th.brand{ background:var(--indigo); }
+  .compare tbody th{ text-align:left; font-weight:600; color:var(--ink); background:#FCFCFF; }
+  .compare tbody tr:not(:last-child) th, .compare tbody tr:not(:last-child) td{ border-bottom:1px solid var(--line); }
+  .compare td.no{ color:#CBD5E1; font-size:17px; }
+  .compare td.yes{ color:var(--mint); font-size:17px; font-weight:700; }
+  .compare td.brand-cell{ background:var(--tint); }
+
+  /* ===== SLIDE 5 ===== */
+  #s5{ background:linear-gradient(180deg, #FAFAFA 0%, #EEF2FF 100%); }
+  .benefit-row{ margin-top:52px; display:flex; gap:18px; flex-wrap:wrap; }
+  .benefit{
+    flex:1; min-width:190px; background:var(--surface); border-radius:18px; padding:30px 24px;
+    border:1px solid var(--line); text-align:left;
+  }
+  .benefit .icon{ font-size:26px; margin-bottom:16px; display:block; }
+  .benefit h3{ font-size:16px; font-weight:700; margin-bottom:8px; }
+  .benefit p{ font-size:13px; color:var(--ink-soft); line-height:1.6; }
+  .benefit .metric{ font-size:22px; font-weight:800; color:var(--indigo); margin-bottom:6px; }
+  .placeholder{ color:var(--coral); border-bottom:1px dashed var(--coral); padding:0 2px; }
+
+  .final-box{
+    margin-top:44px; background:var(--indigo); border-radius:18px; padding:32px 34px;
+    color:#fff;
+  }
+  .final-box p{ font-size:16px; line-height:1.7; font-weight:500; opacity:.92; }
+  .final-box p b{ font-weight:800; }
+
+  .slogan{
+    margin-top:56px; display:flex; align-items:center; gap:14px;
+  }
+  .slogan .stet{ font-size:26px; }
+  .slogan .brand{ font-size:22px; font-weight:800; letter-spacing:-0.01em; }
+  .slogan .divider{ width:1px; height:22px; background:var(--line); }
+  .slogan .tagline{ font-size:14.5px; color:var(--ink-soft); font-weight:600; }
+
+  .slide-index{
+    position:absolute; top:36px; right:8vw; font-size:12px; font-weight:700; color:var(--ink-soft);
+    letter-spacing:.06em; z-index:2;
+  }
+  .slide-index .num{ color:var(--ink); }
+</style>
+</head>
+<body>
+
+<nav class="nav-dots" id="navDots">
+  <a href="#s1" class="active"></a>
+  <a href="#s2"></a>
+  <a href="#s3"></a>
+  <a href="#s4"></a>
+  <a href="#s5"></a>
+</nav>
+
+<!-- SLIDE 1 : 표지 -->
+<section id="s1">
+  <svg class="pulse-line" viewBox="0 0 1000 1000" preserveAspectRatio="none" style="opacity:.5;">
+    <path d="M0,720 L1000,680" stroke="#E2E4F0" stroke-width="1"/>
+  </svg>
+  <div class="frame" style="text-align:center; display:flex; flex-direction:column; align-items:center;">
+    <span class="eyebrow"><span class="dot"></span>정기결제 구독 관리 AI 서비스</span>
+    <h1>매달 빠져나가는데,<br><span class="mark">얼마인지</span> 기억나시나요?</h1>
+    <p class="sub" style="margin-left:auto; margin-right:auto;">나도 모르게 결제되는 구독료, 지금 당신의 지갑은 안녕하신가요?</p>
+
+    <div class="card-visual">
+      <div class="credit-card">
+        <div class="chip"></div>
+        <div>
+          <div class="cnum">•••• •••• •••• ••••</div>
+          <div class="clabel" style="margin-top:8px;">MONTHLY SUBSCRIPTION</div>
+        </div>
+      </div>
+      <div class="leak-dots"><span></span><span></span><span></span><span></span></div>
+    </div>
+
+    <div class="stat-note">OTT·음악·클라우드… 흩어진 구독이 매달 조용히 지갑을 새게 만듭니다</div>
+  </div>
+</section>
+
+<!-- SLIDE 2 : 서비스 소개 -->
+<section id="s2">
+  <div class="slide-index"><span class="num">02</span> / 05 &nbsp; SERVICE</div>
+  <div class="frame">
+    <span class="eyebrow"><span class="dot"></span>닥터 구란</span>
+    <h1>새어나가는 구독료,<br>진단부터 <span class="mark-indigo">처방</span>까지</h1>
+    <p class="sub">흩어진 구독을 한눈에 모으고, AI가 진단해드립니다.</p>
+
+    <div class="steps-row">
+      <div class="step-chip">
+        <div class="n">1</div>
+        <h3>모으기</h3>
+        <p>흩어진 구독을 한 곳에 자동으로 모아 전체 현황을 한눈에 보여드려요.</p>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step-chip">
+        <div class="n">2</div>
+        <h3>진단</h3>
+        <p>AI가 사용 패턴을 분석해 중복·유령 구독을 정확히 짚어드려요.</p>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step-chip">
+        <div class="n">3</div>
+        <h3>처방</h3>
+        <p>안 쓰는 구독은 정리하고, 필요한 구독은 더 나은 방식을 제안해요.</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p class="quiet">단순히 보여주기만 하는 앱은 많습니다.</p>
+      <p><b>닥터 구는 "이건 해지하세요"</b>라고 말해주는 첫 번째 서비스입니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 3 : AI 진단 프로세스 -->
+<section id="s3">
+  <div class="slide-index"><span class="num">03</span> / 05 &nbsp; HOW IT WORKS</div>
+  <div class="frame">
+    <span class="eyebrow"><span class="dot"></span>작동 방식</span>
+    <h1>AI가 당신의 구독을<br><span class="mark-indigo">진단</span>합니다</h1>
+    <p class="sub">결제 데이터를 연결하는 순간부터, 감지-분석-처방이 자동으로 이어집니다.</p>
+
+    <div class="process">
+      <div class="p-card">
+        <div class="icon">🔍</div>
+        <h3>감지</h3>
+        <p>중복·유령 구독을 사용 빈도 대비 자동으로 찾아내요.</p>
+        <span class="tech-tag">결제 API 연동</span>
+      </div>
+      <div class="p-arrow">→</div>
+      <div class="p-card">
+        <div class="icon">📊</div>
+        <h3>분석</h3>
+        <p>실제 사용량 대비 비용을 따져보고 낭비 지점을 짚어요.</p>
+        <span class="tech-tag">사용 패턴 분석 AI</span>
+      </div>
+      <div class="p-arrow">→</div>
+      <div class="p-card">
+        <div class="icon">💊</div>
+        <h3>처방</h3>
+        <p>딱 맞는 해지·변경을 알고리즘이 맞춤 제안해요.</p>
+        <span class="tech-tag">추천 알고리즘</span>
+      </div>
+    </div>
+
+    <div class="bubble-wrap" style="flex-direction:column; align-items:flex-start;">
+      <div class="bubble-label">닥터 구의 실제 제안 예시</div>
+      <div class="bubble">"안 보는 OTT 2개, 월 2만 9천원 새고 있어요. 해지할까요?"</div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 4 : 차별점 -->
+<section id="s4">
+  <div class="slide-index"><span class="num">04</span> / 05 &nbsp; WHY US</div>
+  <div class="frame">
+    <span class="eyebrow"><span class="dot"></span>차별점</span>
+    <h1>왜 <span class="mark-indigo">닥터 구</span>일까요?</h1>
+    <p class="sub">기존 서비스는 보여주기까지, 닥터 구는 행동까지 이어집니다.</p>
+
+    <div class="compare">
+      <table>
+        <thead>
+          <tr>
+            <th>구분</th>
+            <th>기존 구독 관리 앱</th>
+            <th class="brand">🩺 닥터 구</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>구독 현황 확인</th>
+            <td class="yes">✓</td>
+            <td class="brand-cell yes">✓</td>
+          </tr>
+          <tr>
+            <th>사용 패턴 분석</th>
+            <td class="no">–</td>
+            <td class="brand-cell yes">✓</td>
+          </tr>
+          <tr>
+            <th>해지·변경 제안</th>
+            <td class="no">–</td>
+            <td class="brand-cell yes">✓</td>
+          </tr>
+          <tr>
+            <th>실제 절약 유도</th>
+            <td class="no">–</td>
+            <td class="brand-cell yes">✓</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <p class="quiet">다른 앱은 "현황"에서 멈춥니다.</p>
+      <p><b>닥터 구는 "그래서 어떻게 하면 되는지"</b>까지 알려줍니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 5 : 기대효과 / 마무리 -->
+<section id="s5">
+  <div class="slide-index"><span class="num">05</span> / 05 &nbsp; OUTCOME</div>
+  <div class="frame">
+    <span class="eyebrow"><span class="dot"></span>기대 효과</span>
+    <h1>이제, 구독료가<br><span class="mark-indigo">새지 않습니다</span></h1>
+    <p class="sub">닥터 구와 함께라면, 당신의 구독은 건강해집니다.</p>
+
+    <div class="benefit-row">
+      <div class="benefit">
+        <span class="icon">💰</span>
+        <h3>절약</h3>
+        <p>불필요한 구독을 해지해 월 평균 <span class="placeholder">O만원</span> 절약</p>
+      </div>
+      <div class="benefit">
+        <span class="icon">🧠</span>
+        <h3>인식 개선</h3>
+        <p>내 구독 현황을 한눈에 파악해 소비 습관을 스스로 개선</p>
+      </div>
+      <div class="benefit">
+        <span class="icon">⏰</span>
+        <h3>시간 절약</h3>
+        <p>일일이 확인·해지할 필요 없이 자동으로 관리</p>
+      </div>
+    </div>
+
+    <div class="final-box">
+      <p class="quiet" style="opacity:.75;">매달 새어나가던 구독료,</p>
+      <p><b>이제 닥터 구가 진단하고 처방합니다.</b></p>
+    </div>
+
+    <div class="slogan">
+      <span class="stet">🩺</span>
+      <span class="brand">닥터 구</span>
+      <span class="divider"></span>
+      <span class="tagline">당신의 구독 주치의</span>
+    </div>
+  </div>
+</section>
+
+<script>
+  const dots = document.querySelectorAll('.nav-dots a');
+  const sections = document.querySelectorAll('section');
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        dots.forEach(d=>d.classList.remove('active'));
+        const idx = [...sections].indexOf(e.target);
+        dots[idx].classList.add('active');
+      }
+    });
+  }, {threshold:0.5});
+  sections.forEach(s=>io.observe(s));
+</script>
+</body>
+</html>

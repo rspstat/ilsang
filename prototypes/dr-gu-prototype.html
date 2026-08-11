@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>닥터 구 — 프로토타입</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<style>
+  :root{
+    --indigo:#4F46E5; --indigo-deep:#3730A3; --mint:#2DD4BF; --coral:#FB7185;
+    --bg:#FAFAFA; --surface:#FFFFFF; --tint:#EEF0FD; --ink:#1E293B; --ink-soft:#64748B; --line:#E2E4F0;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Pretendard', sans-serif; background:#EDEFF7; min-height:100vh;
+    display:flex; align-items:center; justify-content:center; padding:40px 16px;
+  }
+  .num{font-family:'Montserrat', sans-serif;}
+
+  /* ===== 폰 프레임 ===== */
+  .phone{
+    width:380px; height:800px; background:#0B0B10; border-radius:46px;
+    padding:14px; box-shadow:0 40px 80px -30px rgba(30,41,59,.5);
+    position:relative;
+  }
+  .phone::before{
+    content:''; position:absolute; top:14px; left:50%; transform:translateX(-50%);
+    width:120px; height:24px; background:#0B0B10; border-radius:0 0 16px 16px; z-index:20;
+  }
+  .screen-frame{
+    width:100%; height:100%; background:var(--bg); border-radius:34px; overflow:hidden;
+    position:relative; display:flex; flex-direction:column;
+  }
+  .statusbar{
+    height:44px; flex:0 0 auto; display:flex; align-items:center; justify-content:space-between;
+    padding:0 22px; font-size:13px; font-weight:700; color:var(--ink); z-index:15; background:var(--bg);
+  }
+  .statusbar .icons{ display:flex; gap:5px; align-items:center; font-size:11px; }
+
+  .topbar{
+    flex:0 0 auto; display:flex; align-items:center; gap:12px; padding:6px 20px 14px;
+    background:var(--bg); position:relative; z-index:10;
+  }
+  .topbar .back{
+    width:30px; height:30px; border-radius:50%; background:var(--surface); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; font-size:14px; color:var(--ink); cursor:pointer;
+    flex:0 0 auto; visibility:hidden;
+  }
+  .topbar .back.show{ visibility:visible; }
+  .topbar h2{ font-size:17px; font-weight:800; }
+
+  .content{ flex:1; overflow-y:auto; padding:4px 20px 24px; -ms-overflow-style:none; scrollbar-width:none; }
+  .content::-webkit-scrollbar{ display:none; }
+
+  .dots{ flex:0 0 auto; display:flex; justify-content:center; gap:7px; padding:10px 0 16px; background:var(--bg); }
+  .dots span{ width:6px; height:6px; border-radius:50%; background:#D6D9EE; transition:.25s; }
+  .dots span.active{ background:var(--indigo); width:18px; border-radius:4px; }
+
+  .screen{ display:none; flex-direction:column; height:100%; animation:fadeIn .35s ease; }
+  .screen.active{ display:flex; }
+  @keyframes fadeIn{ from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:translateY(0);} }
+
+  .btn{
+    border:none; cursor:pointer; font-family:inherit; font-weight:700; font-size:15px;
+    border-radius:14px; padding:16px; width:100%; transition:.15s; -webkit-tap-highlight-color:transparent;
+  }
+  .btn:active{ transform:scale(.97); }
+  .btn-primary{ background:var(--indigo); color:#fff; box-shadow:0 12px 24px -10px rgba(79,70,229,.5); }
+  .btn-ghost{ background:var(--surface); color:var(--ink); border:1px solid var(--line); }
+
+  /* ===== 온보딩 ===== */
+  #scr-onboard .content{ display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; height:100%; gap:0; }
+  .onboard-badge{ font-size:44px; margin-bottom:22px; }
+  #scr-onboard h1{ font-size:23px; font-weight:800; line-height:1.4; margin-bottom:10px; }
+  #scr-onboard p{ font-size:14px; color:var(--ink-soft); line-height:1.6; margin-bottom:40px; }
+  .connect-visual{ width:130px; height:82px; border-radius:14px; background:linear-gradient(135deg,var(--indigo),var(--indigo-deep)); margin-bottom:36px; position:relative; box-shadow:0 20px 34px -16px rgba(79,70,229,.5); }
+  .connect-visual::after{ content:''; position:absolute; right:-16px; top:16px; width:20px; height:20px; border-radius:50%; background:rgba(255,255,255,.15);}
+
+  .loading-overlay{
+    position:absolute; inset:0; background:var(--bg); z-index:30; display:none;
+    flex-direction:column; align-items:center; justify-content:center; gap:16px;
+  }
+  .loading-overlay.show{ display:flex; }
+  .spinner{ width:34px; height:34px; border-radius:50%; border:3px solid var(--tint); border-top-color:var(--indigo); animation:spin .8s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .loading-overlay p{ font-size:13.5px; color:var(--ink-soft); font-weight:600; }
+
+  /* ===== 대시보드 ===== */
+  .total-card{
+    background:linear-gradient(135deg,var(--indigo),var(--indigo-deep)); border-radius:20px; padding:24px 22px;
+    color:#fff; margin-bottom:22px;
+  }
+  .total-card .lbl{ font-size:12.5px; opacity:.75; font-weight:600; margin-bottom:8px; }
+  .total-card .amt{ font-size:32px; font-weight:800; }
+  .total-card .sub{ font-size:12px; opacity:.7; margin-top:6px; font-weight:500; }
+
+  .section-title{ font-size:13px; font-weight:700; color:var(--ink-soft); margin:18px 0 10px; letter-spacing:.02em; }
+
+  .sub-row{
+    display:flex; align-items:center; gap:12px; background:var(--surface); border:1px solid var(--line);
+    border-radius:14px; padding:13px 14px; margin-bottom:10px; position:relative;
+  }
+  .sub-row .ic{ width:38px; height:38px; border-radius:10px; background:var(--tint); display:flex; align-items:center; justify-content:center; font-size:17px; flex:0 0 auto; }
+  .sub-row .info{ flex:1; min-width:0; }
+  .sub-row .info .name{ font-size:14px; font-weight:700; }
+  .sub-row .info .tag{ font-size:11px; color:var(--ink-soft); margin-top:2px; }
+  .sub-row .price{ font-size:14px; font-weight:800; flex:0 0 auto; }
+  .flag{ position:absolute; top:-6px; right:10px; background:var(--coral); color:#fff; font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:100px; }
+
+  .cta-fixed{ padding:14px 20px 20px; flex:0 0 auto; }
+
+  /* ===== 진단 리포트 ===== */
+  .diag-card{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:20px; margin-bottom:14px; }
+  .diag-card .head{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .diag-card .head .ic{ width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; }
+  .diag-card.dup .head .ic{ background:#FFF1F2; }
+  .diag-card.ghost .head .ic{ background:#FFF7ED; }
+  .diag-card h3{ font-size:15px; font-weight:800; }
+  .diag-card p{ font-size:13px; color:var(--ink-soft); line-height:1.6; }
+  .diag-card .items{ margin-top:12px; display:flex; flex-direction:column; gap:6px; }
+  .diag-card .items div{ font-size:12.5px; background:var(--tint); padding:7px 10px; border-radius:8px; font-weight:600; color:var(--indigo-deep); }
+
+  /* ===== 처방 ===== */
+  .save-sticky{
+    background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:18px 20px;
+    margin-bottom:16px; text-align:center;
+  }
+  .save-sticky .lbl{ font-size:12px; color:var(--ink-soft); font-weight:600; margin-bottom:4px; }
+  .save-sticky .amt{ font-size:26px; font-weight:800; color:var(--indigo); transition:.2s; }
+
+  .rx-card{
+    background:var(--surface); border:1.5px solid var(--line); border-radius:14px; padding:14px 16px;
+    margin-bottom:10px; display:flex; align-items:center; gap:12px; transition:.2s;
+  }
+  .rx-card.marked{ border-color:var(--coral); background:#FFF5F6; }
+  .rx-card .ic{ width:36px; height:36px; border-radius:10px; background:var(--tint); display:flex; align-items:center; justify-content:center; font-size:16px; flex:0 0 auto; }
+  .rx-card .info{ flex:1; min-width:0; }
+  .rx-card .info .name{ font-size:13.5px; font-weight:700; }
+  .rx-card .info .note{ font-size:11px; color:var(--ink-soft); margin-top:2px; }
+  .rx-card .price{ font-size:13px; font-weight:700; color:var(--ink-soft); margin-right:4px; }
+
+  .toggle{
+    width:52px; height:30px; border-radius:100px; background:#E2E4F0; position:relative; cursor:pointer;
+    flex:0 0 auto; transition:.2s;
+  }
+  .toggle .knob{
+    position:absolute; top:3px; left:3px; width:24px; height:24px; border-radius:50%; background:#fff;
+    box-shadow:0 2px 4px rgba(0,0,0,.15); transition:.2s;
+  }
+  .toggle.on{ background:var(--coral); }
+  .toggle.on .knob{ left:25px; }
+  .toggle-lbl{ font-size:9.5px; font-weight:800; color:#fff; position:absolute; top:9px; }
+  .toggle .txt-off{ right:7px; color:#94A3B8; }
+  .toggle .txt-on{ left:7px; display:none; }
+  .toggle.on .txt-off{ display:none; }
+  .toggle.on .txt-on{ display:block; }
+
+  /* ===== 결과 요약 ===== */
+  #scr-summary .content{ display:flex; flex-direction:column; align-items:center; text-align:center; padding-top:20px;}
+  .celebrate{ font-size:40px; margin-bottom:6px; }
+  .save-hero{ font-size:12.5px; color:var(--ink-soft); font-weight:600; margin-bottom:6px; }
+  .save-hero-amt{ font-size:38px; font-weight:800; color:var(--indigo); margin-bottom:26px; }
+  .summary-list{ width:100%; text-align:left; margin-bottom:20px; }
+  .summary-row{ display:flex; justify-content:space-between; font-size:13.5px; padding:10px 4px; border-bottom:1px solid var(--line); }
+  .summary-row span:first-child{ color:var(--ink); font-weight:600; }
+  .summary-row span:last-child{ color:var(--coral); font-weight:700; }
+  .remain-box{ width:100%; background:var(--tint); border-radius:14px; padding:14px 16px; display:flex; justify-content:space-between; align-items:center; margin-bottom:28px; }
+  .remain-box .l{ font-size:12.5px; color:var(--ink-soft); font-weight:600; }
+  .remain-box .r{ font-size:16px; font-weight:800; color:var(--indigo-deep); }
+  .slogan-final{ display:flex; align-items:center; gap:10px; margin-top:auto; padding-bottom:6px; }
+  .slogan-final .brand{ font-size:16px; font-weight:800; }
+  .slogan-final .tag{ font-size:12.5px; color:var(--ink-soft); font-weight:600; }
+
+  /* ===== 상단 알림 벨 ===== */
+  .bell-btn{
+    margin-left:auto; width:30px; height:30px; border-radius:50%; background:var(--surface);
+    border:1px solid var(--line); display:flex; align-items:center; justify-content:center;
+    font-size:14px; cursor:pointer; position:relative; flex:0 0 auto;
+  }
+  .bell-btn .dot{ position:absolute; top:5px; right:6px; width:7px; height:7px; border-radius:50%; background:var(--coral); }
+  .sub-row{ cursor:pointer; }
+  .rx-card{ cursor:pointer; }
+
+  /* ===== 구독 상세 ===== */
+  .detail-hero{ display:flex; flex-direction:column; align-items:center; text-align:center; padding:6px 0 22px; }
+  .detail-hero .ic{ width:56px; height:56px; border-radius:16px; background:var(--tint); display:flex; align-items:center; justify-content:center; font-size:26px; margin-bottom:14px; }
+  .detail-hero .name{ font-size:18px; font-weight:800; }
+  .detail-hero .meta{ font-size:12.5px; color:var(--ink-soft); margin-top:4px; }
+  .detail-hero .price{ font-size:26px; font-weight:800; color:var(--indigo); margin-top:14px; }
+
+  .chart-card{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:20px; }
+  .chart-card .ttl{ font-size:13px; font-weight:700; color:var(--ink-soft); margin-bottom:16px; }
+  .chart-bars{ display:flex; align-items:flex-end; gap:10px; height:110px; }
+  .chart-bars .bar-wrap{ flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end; }
+  .chart-bars .bar{ width:100%; border-radius:6px 6px 3px 3px; background:var(--tint); transition:.3s; }
+  .chart-bars .bar.low{ background:#FFE4E6; }
+  .chart-bars .bar-wrap .lbl{ font-size:9px; color:var(--ink-soft); font-weight:600; }
+
+  .detail-note{ margin-top:16px; background:var(--tint); border-radius:14px; padding:14px 16px; font-size:12.5px; color:var(--indigo-deep); font-weight:600; line-height:1.65; }
+  .detail-note.warn{ background:#FFF1F2; color:#BE123C; }
+
+  /* ===== 알림 ===== */
+  .notif-card{
+    display:flex; gap:12px; align-items:flex-start; background:var(--surface); border:1px solid var(--line);
+    border-radius:14px; padding:14px 16px; margin-bottom:10px; cursor:pointer;
+  }
+  .notif-card .ic{ width:36px; height:36px; border-radius:10px; background:var(--tint); display:flex; align-items:center; justify-content:center; font-size:16px; flex:0 0 auto; }
+  .notif-card.rx .ic{ background:#EEF2FF; }
+  .notif-card .info{ flex:1; min-width:0; }
+  .notif-card .info .t{ font-size:13.5px; font-weight:700; }
+  .notif-card .info .d{ font-size:12px; color:var(--ink-soft); margin-top:3px; line-height:1.5; }
+  .notif-card .when{ font-size:11px; color:var(--coral); font-weight:800; flex:0 0 auto; margin-top:2px; }
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="screen-frame">
+    <div class="statusbar">
+      <span>9:41</span>
+      <span class="icons">●●● 📶 🔋</span>
+    </div>
+
+    <!-- 화면 1: 온보딩 -->
+    <div class="screen active" id="scr-onboard">
+      <div class="content">
+        <div class="connect-visual"></div>
+        <h1>구독을 연결하면<br>닥터 구가 진단을 시작해요</h1>
+        <p>결제 내역을 불러와서<br>새는 구독료를 찾아드릴게요</p>
+        <button class="btn btn-primary" style="max-width:220px;" onclick="connectAccount()">카드 연결하기</button>
+      </div>
+      <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <p>구독 내역 불러오는 중...</p>
+      </div>
+    </div>
+
+    <!-- 화면 2: 대시보드 -->
+    <div class="screen" id="scr-dashboard">
+      <div class="topbar"><div class="back" style="visibility:hidden"></div><h2>내 구독 현황</h2><div class="bell-btn" onclick="openNotifications('dashboard')">🔔<span class="dot"></span></div></div>
+      <div class="content">
+        <div class="total-card">
+          <div class="lbl">이번 달 예상 지출</div>
+          <div class="amt num" id="dashTotal">68,900원</div>
+          <div class="sub">구독 6개 연결됨</div>
+        </div>
+        <div class="section-title">전체 구독</div>
+        <div id="subList"></div>
+      </div>
+      <div class="cta-fixed">
+        <button class="btn btn-primary" onclick="goTo('diagnosis', true)">AI 진단 시작하기</button>
+      </div>
+    </div>
+
+    <!-- 화면 3: 진단 리포트 -->
+    <div class="screen" id="scr-diagnosis">
+      <div class="topbar"><div class="back show" onclick="goTo('dashboard')">‹</div><h2>진단 결과</h2></div>
+      <div class="content">
+        <div class="diag-card dup">
+          <div class="head"><div class="ic">📹</div><h3>중복 구독 발견</h3></div>
+          <p>영상 스트리밍 서비스 3개를 동시에 구독 중이에요.</p>
+          <div class="items">
+            <div>넷플릭스 프리미엄 · 왓챠 · 유튜브 프리미엄</div>
+          </div>
+        </div>
+        <div class="diag-card ghost">
+          <div class="head"><div class="ic">👻</div><h3>미사용 구독 발견</h3></div>
+          <p>3개월 넘게 사용하지 않은 구독이 있어요.</p>
+          <div class="items">
+            <div>왓챠 · 3개월 미사용 · 12,900원</div>
+            <div>헬스 앱 프리미엄 · 2개월 미사용 · 9,900원</div>
+          </div>
+        </div>
+      </div>
+      <div class="cta-fixed">
+        <button class="btn btn-primary" onclick="goTo('prescription')">처방 받기</button>
+      </div>
+    </div>
+
+    <!-- 화면 4: 처방 -->
+    <div class="screen" id="scr-prescription">
+      <div class="topbar"><div class="back show" onclick="goTo('diagnosis')">‹</div><h2>맞춤 처방</h2></div>
+      <div class="content">
+        <div class="save-sticky">
+          <div class="lbl">예상 절약액</div>
+          <div class="amt num" id="liveSavings">0원</div>
+        </div>
+        <div class="section-title">해지할 구독을 선택하세요</div>
+        <div id="rxList"></div>
+      </div>
+      <div class="cta-fixed">
+        <button class="btn btn-primary" onclick="applyPrescription()">처방 적용하기</button>
+      </div>
+    </div>
+
+    <!-- 화면 5: 결과 요약 -->
+    <div class="screen" id="scr-summary">
+      <div class="topbar"><div class="back show" onclick="goTo('prescription')">‹</div><h2>결과</h2></div>
+      <div class="content">
+        <div class="celebrate">🎉</div>
+        <div class="save-hero">이번 진단으로 절약한 금액</div>
+        <div class="save-hero-amt num" id="finalSavings">0원</div>
+        <div class="summary-list" id="summaryList"></div>
+        <div class="remain-box">
+          <span class="l">앞으로의 월 구독료</span>
+          <span class="r num" id="remainAmt">0원</span>
+        </div>
+        <div class="slogan-final">
+          <span>🩺</span><span class="brand">닥터 구</span>
+          <span class="tag">· 당신의 구독 주치의</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 화면: 구독 상세 -->
+    <div class="screen" id="scr-detail">
+      <div class="topbar"><div class="back show" onclick="goBackFrom()">‹</div><h2>구독 상세</h2></div>
+      <div class="content" id="detailContent"></div>
+    </div>
+
+    <!-- 화면: 알림 -->
+    <div class="screen" id="scr-notifications">
+      <div class="topbar"><div class="back show" onclick="goBackFrom()">‹</div><h2>알림</h2></div>
+      <div class="content" id="notifContent"></div>
+    </div>
+
+    <div class="dots" id="dots">
+      <span data-s="onboard"></span><span data-s="dashboard"></span><span data-s="diagnosis"></span><span data-s="prescription"></span><span data-s="summary"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUBS = [
+  { id:1, name:'넷플릭스 프리미엄', tag:'영상', ic:'🎬', price:17000, note:'사용중', suggest:false, history:[18,22,25,20,24,21], daysUntil:12 },
+  { id:2, name:'왓챠', tag:'영상', ic:'🎞️', price:12900, note:'3개월 미사용', suggest:true, history:[5,2,0,0,0,0], daysUntil:3 },
+  { id:3, name:'멜론', tag:'음악', ic:'🎵', price:10900, note:'사용중', suggest:false, history:[15,18,16,20,19,17], daysUntil:20 },
+  { id:4, name:'유튜브 프리미엄', tag:'영상', ic:'▶️', price:14900, note:'사용중', suggest:false, history:[20,19,23,25,22,24], daysUntil:7 },
+  { id:5, name:'클라우드 저장소 200GB', tag:'유틸리티', ic:'☁️', price:3300, note:'사용중', suggest:false, history:[30,30,30,30,30,30], daysUntil:15 },
+  { id:6, name:'헬스 앱 프리미엄', tag:'헬스', ic:'💪', price:9900, note:'2개월 미사용', suggest:true, history:[8,4,0,0,0,0], daysUntil:2 },
+];
+const fmt = n => n.toLocaleString('ko-KR') + '원';
+const toggles = {};
+SUBS.forEach(s => toggles[s.id] = s.suggest);
+
+function renderDashboard(){
+  const wrap = document.getElementById('subList');
+  wrap.innerHTML = SUBS.map(s => `
+    <div class="sub-row" onclick="openDetail(${s.id}, 'dashboard')">
+      ${s.note.includes('미사용') ? `<span class="flag">${s.note}</span>` : ''}
+      <div class="ic">${s.ic}</div>
+      <div class="info"><div class="name">${s.name}</div><div class="tag">${s.tag}</div></div>
+      <div class="price num">${fmt(s.price)}</div>
+    </div>`).join('');
+}
+
+function renderPrescription(){
+  const wrap = document.getElementById('rxList');
+  wrap.innerHTML = SUBS.map(s => `
+    <div class="rx-card ${toggles[s.id] ? 'marked' : ''}" id="rx-${s.id}" onclick="openDetail(${s.id}, 'prescription')">
+      <div class="ic">${s.ic}</div>
+      <div class="info"><div class="name">${s.name}</div><div class="note">${s.note}</div></div>
+      <div class="price num">${fmt(s.price)}</div>
+      <div class="toggle ${toggles[s.id] ? 'on' : ''}" onclick="event.stopPropagation(); toggleSub(${s.id})">
+        <span class="toggle-lbl txt-off">유지</span><span class="toggle-lbl txt-on">해지</span>
+      </div>
+    </div>`).join('');
+  updateLiveSavings();
+}
+
+function toggleSub(id){
+  toggles[id] = !toggles[id];
+  const card = document.getElementById('rx-'+id);
+  if(card){
+    const tg = card.querySelector('.toggle');
+    card.classList.toggle('marked', toggles[id]);
+    tg.classList.toggle('on', toggles[id]);
+  }
+  updateLiveSavings();
+}
+
+function updateLiveSavings(){
+  const total = SUBS.filter(s => toggles[s.id]).reduce((a,s)=>a+s.price,0);
+  const el = document.getElementById('liveSavings');
+  if(el) el.textContent = fmt(total);
+}
+
+/* ===== 상세 / 알림 ===== */
+let previousScreen = 'dashboard';
+
+function showRaw(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('scr-'+name).classList.add('active');
+  document.querySelector('#scr-'+name+' .content').scrollTop = 0;
+}
+
+function goBackFrom(){ goTo(previousScreen); }
+
+function openDetail(id, from){
+  previousScreen = from;
+  renderDetail(id);
+  showRaw('detail');
+}
+
+function openNotifications(from){
+  previousScreen = from;
+  renderNotifications();
+  showRaw('notifications');
+}
+
+function renderDetail(id){
+  const s = SUBS.find(x=>x.id===id);
+  const max = Math.max(...s.history, 1);
+  const months = ['6개월전','5개월전','4개월전','3개월전','2개월전','이번달'];
+  const bars = s.history.map((v,i)=>`
+    <div class="bar-wrap">
+      <div class="bar ${v===0 ? 'low' : ''}" style="height:${Math.max(6, (v/max)*100)}%"></div>
+      <div class="lbl">${months[i]}</div>
+    </div>`).join('');
+  const isGhost = s.note.includes('미사용');
+  const monthsUnused = isGhost ? s.note.match(/\d+/)[0] : null;
+  document.getElementById('detailContent').innerHTML = `
+    <div class="detail-hero">
+      <div class="ic">${s.ic}</div>
+      <div class="name">${s.name}</div>
+      <div class="meta">${s.tag} · ${s.note}</div>
+      <div class="price num">${fmt(s.price)}<span style="font-size:13px;color:var(--ink-soft);font-weight:600;"> / 월</span></div>
+    </div>
+    <div class="chart-card">
+      <div class="ttl">최근 6개월 사용 이력</div>
+      <div class="chart-bars">${bars}</div>
+    </div>
+    <div class="detail-note ${isGhost ? 'warn' : ''}">
+      ${isGhost ? `이 구독은 ${monthsUnused}개월째 사용 기록이 없어요. 해지를 고려해보세요.` : '꾸준히 사용 중인 구독이에요. 유지해도 좋아요.'}
+    </div>
+    <div class="cta-fixed" style="padding-left:0; padding-right:0;">
+      <button class="btn ${toggles[s.id] ? 'btn-ghost' : 'btn-primary'}" onclick="toggleSub(${s.id}); renderDetail(${s.id});">
+        ${toggles[s.id] ? '해지 예약 취소하기' : '해지 예약하기'}
+      </button>
+    </div>
+  `;
+}
+
+function renderNotifications(){
+  const upcoming = [...SUBS].sort((a,b)=>a.daysUntil-b.daysUntil);
+  const paymentCards = upcoming.map(s=>`
+    <div class="notif-card" onclick="openDetail(${s.id}, 'notifications')">
+      <div class="ic">${s.ic}</div>
+      <div class="info"><div class="t">${s.name} 결제 예정</div><div class="d">${fmt(s.price)} 결제돼요</div></div>
+      <div class="when">D-${s.daysUntil}</div>
+    </div>`).join('');
+  document.getElementById('notifContent').innerHTML = `
+    <div class="section-title">처방 알림</div>
+    <div class="notif-card rx" onclick="goTo('diagnosis')">
+      <div class="ic">🩺</div>
+      <div class="info"><div class="t">새로운 처방이 도착했어요</div><div class="d">왓챠, 헬스 앱 프리미엄이 오랫동안 사용되지 않았어요</div></div>
+    </div>
+    <div class="section-title">결제 예정</div>
+    ${paymentCards}
+  `;
+}
+
+let appliedSavings = 0, appliedList = [], remainTotal = 0;
+function applyPrescription(){
+  appliedList = SUBS.filter(s => toggles[s.id]);
+  appliedSavings = appliedList.reduce((a,s)=>a+s.price,0);
+  remainTotal = SUBS.reduce((a,s)=>a+s.price,0) - appliedSavings;
+  document.getElementById('summaryList').innerHTML = appliedList.map(s =>
+    `<div class="summary-row"><span>${s.name} 해지</span><span>-${fmt(s.price)}</span></div>`
+  ).join('') || '<div class="summary-row"><span>해지한 구독이 없어요</span><span>0원</span></div>';
+  document.getElementById('remainAmt').textContent = fmt(remainTotal);
+  goTo('summary');
+  animateCount('finalSavings', appliedSavings);
+}
+
+function animateCount(elId, target){
+  const el = document.getElementById(elId);
+  const dur = 900, start = performance.now();
+  function step(t){
+    const p = Math.min(1, (t-start)/dur);
+    const eased = 1 - Math.pow(1-p, 3);
+    el.textContent = fmt(Math.round(target * eased));
+    if(p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function connectAccount(){
+  const overlay = document.getElementById('loadingOverlay');
+  overlay.classList.add('show');
+  setTimeout(()=>{
+    overlay.classList.remove('show');
+    goTo('dashboard');
+  }, 1300);
+}
+
+const order = ['onboard','dashboard','diagnosis','prescription','summary'];
+function goTo(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('scr-'+name).classList.add('active');
+  document.querySelectorAll('#dots span').forEach(d=>d.classList.toggle('active', d.dataset.s===name));
+  if(name==='dashboard') renderDashboard();
+  if(name==='prescription') renderPrescription();
+  document.querySelector('#scr-'+name+' .content').scrollTop = 0;
+}
+
+renderDashboard();
+goTo('onboard');
+</script>
+</body>
+</html>

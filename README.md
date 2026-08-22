@@ -5,6 +5,15 @@
 
 </br>
 
+## 🔗 LINK
+[Prototype](https://octopussi.netlify.app)
+
+[Youtube](https://youtu.be/8fjAKEojNr8?si=e4Ibbd6YgBa4yEMO)
+
+[Instagra](https://www.instagram.com/p/DcU0fUsSQal/?utm_source=ig_web_copy_link&igsi=MzRlODBiNWFlZA==)
+
+</br>
+
 ## 📌 프로젝트 소개
 
 뱅크샐러드도, 토스도 정기결제를 **"보여주기만"** 합니다.
